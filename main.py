@@ -1,6 +1,7 @@
 import pygame
 import pygame.freetype
 import math
+import random
 
 from pygame.locals import * # so we have some local variables idk
 
@@ -122,7 +123,7 @@ class Player(pygame.sprite.Sprite):
 
 # ==== ENEMY BULLET SPRITE
 class EnemyBullet(pygame.sprite.Sprite):
-    def __init__(self, x,y, targetX, targetY, speed, dir, AIM, type): # aim is to toggle if it aims toward player or not
+    def __init__(self, x,y, targetX, targetY, speed, dir, AIM, type, type2): # aim is to toggle if it aims toward player or not, type2 is between dagger or bullet
         pygame.sprite.Sprite.__init__(self)
         self.x = x
         self.y = y
@@ -131,6 +132,9 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.speed = speed
         self.dir = dir
         self.type = type # 0 means red, 1 means blue
+        self.type2 = type2
+        
+        self.freeze = False
         
         self.rect = pygame.Rect(self.x - 5, self.y - 5, 5 * 2, 5 * 2)
         
@@ -142,14 +146,27 @@ class EnemyBullet(pygame.sprite.Sprite):
     def update(self):
         self.x += math.cos(self.dir) * self.speed # praise chatgpt for making equations like these
         self.y += math.sin(self.dir) * self.speed
-        
+            
         if self.x < -50 or self.x > 1330 or self.y < -50 or self.y > 1010:
             self.kill() #remove sprite when its offscreen
-    
+            
         self.rect.center = (self.x, self.y)
-    
+            
     def show(self, surface):
-        pygame.draw.circle(surface, (255,0,0), (self.x, self.y), 5) # aren't actually shown, usually the image is displayed over it at the end of the code
+        if self.type2 == 0:
+            pygame.draw.circle(surface, (255,0,0), (self.x, self.y), 5)
+
+        elif self.type2 == 1:
+            angle = -math.degrees(self.dir) - 90
+            rotated = pygame.transform.rotate(KUNAI_IMG, angle)
+            rect = rotated.get_rect(center=(self.x, self.y))
+
+            # draw rotated kunai
+            surface.blit(rotated, rect)
+
+            # draw rect around rotated kunai (debug)
+            pygame.draw.rect(surface, (255,0,0), rect, 1)  
+
 
 # ==== BOSS SPRITE
 class Boss(pygame.sprite.Sprite):
@@ -203,7 +220,8 @@ class Boss(pygame.sprite.Sprite):
                             5, # speed of the bullet
                             (i * 20) + self.eDir, #rotation of the bullet
                             False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
-                            0) # bullet appearance
+                            0, #bullet apperance
+                            0) # bullet type
                     else:
                         newEnemyBullet = EnemyBullet(
                             self.x, # x position of boss
@@ -213,7 +231,8 @@ class Boss(pygame.sprite.Sprite):
                             5, # speed of the bullet
                             (i * 20) + self.eDir, #rotation of the bullet
                             False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
-                            2) # bullet appearance
+                            2, # bullet appearance
+                            0) # bullet type
                     enemyBullets.add(newEnemyBullet)
                 self.eTime = currentTime
             
@@ -251,7 +270,9 @@ class Boss(pygame.sprite.Sprite):
                         5, # speed of the bullet
                         (i * 15) + self.eDir, #rotation of the bullet
                         False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
-                        0) # bullet appearance
+                        0, # bullet apperance
+                        0) # bullet type
+                    
                     enemyBullets.add(newEnemyBullet)
                 self.eTime3 = currentTime
                 self.eDir += 5
@@ -270,8 +291,8 @@ class Boss(pygame.sprite.Sprite):
                             7+i, # speed of the bullet
                             0, #rotation of the bullet
                             True, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
-                            1 # bullet appearance
-                        )
+                            1, # bullet appearance
+                            0) # bullet type
                         enemyBullets.add(newEnemyBullet)
 
                 self.burstCount = 1
@@ -290,8 +311,8 @@ class Boss(pygame.sprite.Sprite):
                             7+i, # speed of the bullet
                             0, #rotation of the bullet
                             True, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
-                            1 # bullet appearance
-                        )
+                            1, # bullet appearance
+                            0) # bullet type
                         enemyBullets.add(newEnemyBullet)
 
                 self.burstCount += 1
@@ -301,7 +322,50 @@ class Boss(pygame.sprite.Sprite):
                 if self.burstCount == 3:
                     self.eTime2 = currentTime
                     self.burstCount = 0
-
+        elif attack == 3:    
+            currentTime = pygame.time.get_ticks()
+            self.cooldown = 0 # cooldown between bursts
+            self.cooldown2 = 100 # cooldown between the 3 bursts
+            self.cooldown3 = 450 # cooldown between the flower code thing
+            
+            
+            # random bullets
+            if currentTime - self.eTime > self.cooldown:    
+                for i in range(3):
+                    newEnemyBullet = EnemyBullet(
+                        self.x, # x position of boss
+                        self.y, # y position of boss
+                        newPlayer.x, # x position of the target to shoot
+                        newPlayer.y, # y position of the target to shoot
+                        random.randint(4, 7), # speed of the bullet
+                        random.randint(-180, 180), #rotation of the bullet
+                        False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+                        random.randint(0, 4), # bullet appearance
+                        0) # bullet type
+                    enemyBullets.add(newEnemyBullet)
+                self.eTime = currentTime
+                
+        elif attack == 4:
+            print('attack4')
+            currentTime = pygame.time.get_ticks()
+            self.cooldown = 100 # cooldown between bursts
+            self.cooldown2 = 100 # cooldown between the 3 bursts
+            self.cooldown3 = 450 # cooldown between the flower code thing
+            
+            if currentTime - self.eTime > self.cooldown:    
+                newEnemyBullet = EnemyBullet(
+                    self.x, # x position of boss
+                    self.y, # y position of boss
+                    newPlayer.x, # x position of the target to shoot
+                    newPlayer.y, # y position of the target to shoot
+                    random.randint(4, 7), # speed of the bullet
+                    random.randint(-180, 180), #rotation of the bullet
+                    False, # toggle whether the bullet is aimed toward player or not; overrides target x and target y
+                    random.randint(0, 4), # bullet appearance
+                    1) # bullet type
+                enemyBullets.add(newEnemyBullet)
+                self.eTime = currentTime
+            
         # Oh my god i AM NOT CONTAINING MYSELF ANYMORE I FORGOT TO ADD THIS DUMB LINE OF CODE AND THATS WHY THE HOMING BULLETS DIDNT DISAPPEAR WHEN THEY HIT THE BOSS
         # PYGAME IS THE WORST GAME ENGINE IVE EVER USED I NEVER WANT TO USE THIS DUMB LANGUAGE AGAIN
         # im too scared to even swear in my comments
@@ -333,6 +397,15 @@ BULLET2_IMG = pygame.transform.scale(BULLET2_IMG, (35, 35))
 BULLET3_IMG = pygame.image.load("TouhouBullet3.png").convert_alpha()
 BULLET3_IMG = pygame.transform.scale(BULLET3_IMG, (35, 35))
 
+BULLET4_IMG = pygame.image.load("TouhouBullet4.png").convert_alpha()
+BULLET4_IMG = pygame.transform.scale(BULLET4_IMG, (35, 35))
+
+BULLET5_IMG = pygame.image.load("TouhouBullet5.png").convert_alpha()
+BULLET5_IMG = pygame.transform.scale(BULLET5_IMG, (35, 35))
+
+KUNAI_IMG = pygame.image.load("Kunai.png").convert_alpha()
+KUNAI_IMG = pygame.transform.scale(KUNAI_IMG, (35, 35))
+
 BULLETPLAYER_IMG = pygame.image.load("TouhouBulletPlayer.png").convert_alpha()
 BULLETPLAYER_IMG = pygame.transform.scale(BULLETPLAYER_IMG, (16, 32))
 
@@ -352,7 +425,7 @@ y = 600
 
 score = 0
 
-attack = 2 #BOSS ATTACK
+attack = 4 #BOSS ATTACK
 
 focus = False
 playerSpeed = 8
@@ -386,8 +459,16 @@ while True:
     keys = pygame.key.get_pressed() # pygame.key.get_pressed() returns a list of keys
     
     # Bullet Debug: To test bullet aiming
-    # if keys[K_SPACE]:
-    #     newEnemyBullet = EnemyBullet(WIN_WIDTH/2, 100, newPlayer.x, newPlayer.y, 10, 90, True)
+    if keys[K_SPACE]:
+        newEnemyBullet = EnemyBullet(
+            boss.x, # x position of boss
+            boss.y, # y position of boss
+            newPlayer.x, # x position of the target to shoot
+            newPlayer.y, # y position of the target to shoot
+            random.randint(4, 7), # speed of the bullet
+            random.randint(-180, 180), #rotation of the bullet
+            False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+            random.randint(0, 4)) # bullet appearance
     #     enemyBullets.add(newEnemyBullet)
         
     #2 Update the state of the game (move characters increase score etc.)
@@ -424,18 +505,26 @@ while True:
     
     if playerCollision:
         break
+        print('ded')
     
     for player in playerGroup:
         if player.focus == True:
             SCREEN.blit(PLAYERHITBOX_IMG, (player.x-125/2, player.y-125/2)) # Make image, this is the Ame 
     
     for bullet in enemyBullets:
-        if bullet.type == 0:
-            SCREEN.blit(BULLET_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
-        elif bullet.type == 1:
-            SCREEN.blit(BULLET2_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
-        elif bullet.type == 2:
-            SCREEN.blit(BULLET3_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+        if bullet.type2 == 0:
+            if bullet.type == 0:
+                SCREEN.blit(BULLET_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+            elif bullet.type == 1:
+                SCREEN.blit(BULLET2_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+            elif bullet.type == 2:
+                SCREEN.blit(BULLET3_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+            elif bullet.type == 3:
+                SCREEN.blit(BULLET4_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+            elif bullet.type == 4:
+                SCREEN.blit(BULLET5_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+        # elif bullet.type2 == 1:
+        #     SCREEN.blit(KUNAI_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
     
     for bullet in playerBullets:
         if bullet.type == 0:

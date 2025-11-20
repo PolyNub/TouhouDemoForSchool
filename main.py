@@ -12,6 +12,14 @@ def firePlayerBullet(self, x, y, type):
     self.bulletGroup.add(PlayerBullet(x, y, type))
     return
 
+def changeKunaiColor(type):
+    if type == 0:
+        return KUNAI_IMG
+    elif type == 1:
+        return KUNAI2_IMG
+    return KUNAI_IMG
+
+
 # ==== PLAYER BULLET SPRITE
 class PlayerBullet(pygame.sprite.Sprite):
     def __init__(self, x,y, type, radius=10,):
@@ -140,7 +148,7 @@ class EnemyBullet(pygame.sprite.Sprite):
         
         if AIM == True:
             self.dir = math.atan2(targetY - y, targetX - x)
-        else:
+        elif AIM == False:
             self.dir = math.radians(dir) # because for SOME F$*$A$$ REASON PYTHON USES RADIANS FOR MATH WHO GENUINELY LIKES THIS LANGUAGE IVE SEEN BETTER FROM SCRATCH
 
     def update(self):
@@ -157,15 +165,17 @@ class EnemyBullet(pygame.sprite.Sprite):
             pygame.draw.circle(surface, (255,0,0), (self.x, self.y), 5)
 
         elif self.type2 == 1:
-            angle = -math.degrees(self.dir) - 90
-            rotated = pygame.transform.rotate(KUNAI_IMG, angle)
+            angle = -math.degrees(self.dir) - 90 # -90 is for the offset
+            
+            rotated = pygame.transform.rotate(changeKunaiColor(self.type), angle)
             rect = rotated.get_rect(center=(self.x, self.y))
 
             # draw rotated kunai
             surface.blit(rotated, rect)
 
             # draw rect around rotated kunai (debug)
-            pygame.draw.rect(surface, (255,0,0), rect, 1)  
+            if debug == True:
+               pygame.draw.rect(surface, (255,0,0), rect, 1)  
 
 
 # ==== BOSS SPRITE
@@ -241,6 +251,7 @@ class Boss(pygame.sprite.Sprite):
             self.x += (self.targetX - self.x) * 0.01
             self.y += (self.targetY - self.y) * 0.01
             bossMoveTime = pygame.time.get_ticks()
+            self.mCooldown = 5000 #cooldown for when the boss moves
             
             if bossMoveTime - self.mTime > self.mCooldown:
                 
@@ -324,16 +335,16 @@ class Boss(pygame.sprite.Sprite):
                     self.burstCount = 0
         elif attack == 3:    
             currentTime = pygame.time.get_ticks()
-            self.cooldown = 0 # cooldown between bursts
-            self.cooldown2 = 100 # cooldown between the 3 bursts
+            self.cooldown = 200 # cooldown between bursts
+            self.cooldown2 = 500 # cooldown between the 3 bursts
             self.cooldown3 = 450 # cooldown between the flower code thing
             
             
             # random bullets
             if currentTime - self.eTime > self.cooldown:    
-                for i in range(3):
+                for i in range(15):
                     newEnemyBullet = EnemyBullet(
-                        self.x, # x position of boss
+                        self.x, # x position of boss 
                         self.y, # y position of boss
                         newPlayer.x, # x position of the target to shoot
                         newPlayer.y, # y position of the target to shoot
@@ -345,27 +356,80 @@ class Boss(pygame.sprite.Sprite):
                     enemyBullets.add(newEnemyBullet)
                 self.eTime = currentTime
                 
+            #kunai
+            if currentTime - self.eTime2 > self.cooldown2:    
+                for e in range(2):
+                    for i in range(7):
+                        newEnemyBullet = EnemyBullet(
+                            self.x, # x position of boss
+                            self.y, # y position of boss
+                            newPlayer.x - 600 + 200*i, #x position of the target to shoot
+                            newPlayer.y, # y position of the target to shoot
+                            4+e, # speed of the bullet
+                            0, #rotation of the bullet
+                            True, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+                            e, # bullet appearance
+                            1) # bullet type
+                        enemyBullets.add(newEnemyBullet)                    
+                    self.eTime2 = currentTime
+                
         elif attack == 4:
             print('attack4')
             currentTime = pygame.time.get_ticks()
-            self.cooldown = 100 # cooldown between bursts
-            self.cooldown2 = 100 # cooldown between the 3 bursts
-            self.cooldown3 = 450 # cooldown between the flower code thing
+            self.cooldown = 750 # cooldown between bursts
+            self.cooldown2 = 2000 # cooldown between the 3 bursts
+            self.cooldown3 = 2000 # cooldown between the flower code thing
             
-            if currentTime - self.eTime > self.cooldown:    
-                newEnemyBullet = EnemyBullet(
-                    self.x, # x position of boss
-                    self.y, # y position of boss
-                    newPlayer.x, # x position of the target to shoot
-                    newPlayer.y, # y position of the target to shoot
-                    random.randint(4, 7), # speed of the bullet
-                    random.randint(-180, 180), #rotation of the bullet
-                    False, # toggle whether the bullet is aimed toward player or not; overrides target x and target y
-                    random.randint(0, 4), # bullet appearance
-                    1) # bullet type
-                enemyBullets.add(newEnemyBullet)
+            # flower stuff
+            if currentTime - self.eTime > self.cooldown:
+                for i in range(45):      
+                    newEnemyBullet = EnemyBullet(
+                        self.x, # x position of boss
+                        self.y, # y position of boss
+                        newPlayer.x, # x position of the target to shoot
+                        newPlayer.y, # y position of the target to shoot
+                        5, # speed of the bullet
+                        (i * 8) + self.eDir, #rotation of the bullet
+                        False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+                        1, # bullet apperance
+                        1) # bullet type
+                    enemyBullets.add(newEnemyBullet)
                 self.eTime = currentTime
+                self.eDir += 5
+                
+            # aimed kunai
+            if currentTime - self.eTime2 > self.cooldown2:
+                for i in range(5):      
+                    newEnemyBullet = EnemyBullet(
+                        self.x, # x position of boss
+                        self.y, # y position of boss
+                        newPlayer.x, # x position of the target to shoot
+                        newPlayer.y, # y position of the target to shoot
+                        4+i*0.8, # speed of the bullet
+                        (i * 15) + self.eDir, #rotation of the bullet
+                        True, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+                        1, # bullet apperance
+                        0) # bullet type
+                    enemyBullets.add(newEnemyBullet)
+                self.eTime2 = currentTime
             
+            # explosion
+            if currentTime - self.eTime3 > self.cooldown3:
+                for e in range(3):
+                    for i in range(24):      
+                        newEnemyBullet = EnemyBullet(
+                            self.x, # x position of boss
+                            self.y, # y position of boss
+                            newPlayer.x, # x position of the target to shoot
+                            newPlayer.y, # y position of the target to shoot
+                            4+e*2, # speed of the bullet
+                            (i * 15)+ self.eDir, #rotation of the bullet
+                            False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+                            2+e, # bullet apperance
+                            0) # bullet type
+                        enemyBullets.add(newEnemyBullet)
+                self.eTime3 = currentTime
+                
         # Oh my god i AM NOT CONTAINING MYSELF ANYMORE I FORGOT TO ADD THIS DUMB LINE OF CODE AND THATS WHY THE HOMING BULLETS DIDNT DISAPPEAR WHEN THEY HIT THE BOSS
         # PYGAME IS THE WORST GAME ENGINE IVE EVER USED I NEVER WANT TO USE THIS DUMB LANGUAGE AGAIN
         # im too scared to even swear in my comments
@@ -406,6 +470,10 @@ BULLET5_IMG = pygame.transform.scale(BULLET5_IMG, (35, 35))
 KUNAI_IMG = pygame.image.load("Kunai.png").convert_alpha()
 KUNAI_IMG = pygame.transform.scale(KUNAI_IMG, (35, 35))
 
+KUNAI2_IMG = pygame.image.load("Kunai2.png").convert_alpha()
+KUNAI2_IMG = pygame.transform.scale(KUNAI2_IMG, (35, 35))
+
+
 BULLETPLAYER_IMG = pygame.image.load("TouhouBulletPlayer.png").convert_alpha()
 BULLETPLAYER_IMG = pygame.transform.scale(BULLETPLAYER_IMG, (16, 32))
 
@@ -425,10 +493,12 @@ y = 600
 
 score = 0
 
-attack = 4 #BOSS ATTACK
+attack = 1 #BOSS ATTACK
 
 focus = False
 playerSpeed = 8
+godmode = True
+debug = False
 
 # Groups for the sprites
 playerBullets = pygame.sprite.Group()
@@ -503,9 +573,12 @@ while True:
     if playerBulletCollision:
         score += 10
     
-    if playerCollision:
-        break
-        print('ded')
+    
+    # Variable to toggle if you die if you get hit
+    if godmode == False:
+        if playerCollision:
+            break
+            print('ded')
     
     for player in playerGroup:
         if player.focus == True:
@@ -523,8 +596,6 @@ while True:
                 SCREEN.blit(BULLET4_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
             elif bullet.type == 4:
                 SCREEN.blit(BULLET5_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
-        # elif bullet.type2 == 1:
-        #     SCREEN.blit(KUNAI_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
     
     for bullet in playerBullets:
         if bullet.type == 0:

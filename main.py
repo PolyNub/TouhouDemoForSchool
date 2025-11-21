@@ -19,8 +19,8 @@ def changeKunaiColor(type):
         return KUNAI2_IMG
     return KUNAI_IMG
 
-def spellcardGraphic(text):
-    newSpellcard = Spellcard(text)
+def spellcardGraphic(text, img):
+    newSpellcard = Spellcard(text, img)
     spellcardGroup.add(newSpellcard)
     return
 
@@ -36,6 +36,16 @@ def attackName(attackNumber):
     elif attackNumber == 4:
         text = 'Dying Hope - Scope Explosion'
 
+    return text
+
+def winText(deathCount):
+    
+    text = ''
+    
+    if deathCount < 1:
+        text = 'you won, no deaths so good job'
+    else:
+        text = "you won, you died", deathCount, "time(s), do a no hit run now haha"
     return text
 
 # ==== PLAYER BULLET SPRITE
@@ -144,9 +154,9 @@ class Player(pygame.sprite.Sprite):
         
     def show(self, surface):
         if godmode == False:
-            surface.blit(AME_IMG, (self.x-50, self.y-50)) # Make image, this is the Ame
+            surface.blit(THERESA_IMG, (self.x-50, self.y-50)) # Make image, this is the Ame
         else:
-            surface.blit(AME_IMG_HALF, (self.x-50, self.y-50))
+            surface.blit(THERESA_IMG_HALF, (self.x-50, self.y-50))
         if self.focus == True:
             pygame.draw.circle(surface, (0,0,255), (self.x, self.y), 8)
 
@@ -419,7 +429,7 @@ class Boss(pygame.sprite.Sprite):
                     self.eTime = currentTime
                     self.eDir += 5
                     
-                # aimed kunai
+                # aimed bullets
                 if currentTime - self.eTime2 > self.cooldown2:
                     for i in range(5):      
                         newEnemyBullet = EnemyBullet(
@@ -427,7 +437,7 @@ class Boss(pygame.sprite.Sprite):
                             self.y, # y position of boss
                             newPlayer.x, # x position of the target to shoot
                             newPlayer.y, # y position of the target to shoot
-                            4+i*0.8, # speed of the bullet
+                            7+i*0.8, # speed of the bullet
                             (i * 15) + self.eDir, #rotation of the bullet
                             True, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
                             1, # bullet apperance
@@ -463,7 +473,7 @@ class Boss(pygame.sprite.Sprite):
 
 # ==== SPELLCARD GRAPHIC
 class Spellcard(pygame.sprite.Sprite):
-    def __init__(self, text):
+    def __init__(self, text, img):
         pygame.sprite.Sprite.__init__(self)
         self.x = WIN_WIDTH+950
         self.y = 980
@@ -471,20 +481,25 @@ class Spellcard(pygame.sprite.Sprite):
         self.targetX = WIN_WIDTH+200
         self.targetY = 980
         self.eTime = pygame.time.get_ticks()
+        self.img = img
         
     def update(self):
-        print('')
         self.x += (self.targetX - self.x) * 0.05
         self.y += (self.targetY - self.y) * 0.015
 
         if pygame.time.get_ticks() - self.eTime > 1500:
-            print('hi')
             self.targetY = -1000
 
         if self.y < -500:
             self.kill()
     
     def show(self, surface):
+        
+        if self.img == 1:
+            SPELLCARD_IMG = pygame.image.load("Ame.png").convert_alpha()
+        elif self.img == 2:
+            SPELLCARD_IMG = pygame.image.load("Theresa.png").convert_alpha()
+            
         surface.blit(pygame.transform.scale(SPELLCARD_IMG, (900, 900)), (self.x-900, self.y-900))
         
         pygame.draw.rect(surface, (0,0,205), pygame.Rect(self.x-870, self.y-230, 500, 60))
@@ -506,8 +521,11 @@ AME_IMG = pygame.transform.scale(AME_IMG, (100, 100))
 
 SPELLCARD_IMG = pygame.image.load("Ame.png").convert_alpha()
 
-AME_IMG_HALF = AME_IMG.copy()
-AME_IMG_HALF.set_alpha(50)   # 0 = invisible, 255 = fully opaque
+THERESA_IMG = pygame.image.load("Theresa.png").convert_alpha()
+THERESA_IMG = pygame.transform.scale(THERESA_IMG, (100, 100))
+
+THERESA_IMG_HALF = THERESA_IMG.copy()
+THERESA_IMG_HALF.set_alpha(50)   # 0 = invisible, 255 = fully opaque
 
 PLAYERHITBOX_IMG = pygame.image.load("Hitbox.png").convert_alpha()
 PLAYERHITBOX_IMG = pygame.transform.scale(PLAYERHITBOX_IMG, (125, 125))
@@ -543,25 +561,17 @@ pygame.display.set_caption("PolyTouhou") # this sets the name of the window
 CLOCK = pygame.time.Clock()
 
 # TEXT FONT STUFF
-
 GAME_FONT = pygame.freetype.Font("COMIC.TTF", 24)
 
 # starting position for the player I guess
 x = WIN_WIDTH/2
 y = 800
 
-score = 0
-
 attack = 0 #BOSS ATTACK
 bossHealth = 50000
-spellcardDelayTime = 0 # for spellcard ui, will be changed to the amount of time when the boss does a spellcard
-phaseChanging = False
 
-playerDeathTime = 0 # same system as spellcard delay time
-playerDying = False
-
-playerGodmodeTime = 0
-playerGodmodeTimeStart = False
+# for the end screen!
+deaths = 0
 
 focus = False
 playerSpeed = 8
@@ -575,6 +585,57 @@ enemyBullets = pygame.sprite.Group()
 bossGroup = pygame.sprite.Group()
 spellcardGroup = pygame.sprite.Group()
 
+# Lines of text for the title screen
+titleLines = [
+    'Welcome to Touhou Demo!!',
+    'Controls:',
+    'Arrow Keys to move',
+    'Shift Key to focus; slows movement, attacks stronger',
+    '',
+    'DEBUG FUNCTIONS:',
+    'G Key to enable godmode (or maybe just get good..)',
+    'B Key during gameplay to cut to win',
+    '',
+    'Press P to start!',
+]
+
+# Do title screen!!
+while True:
+    
+    SCREEN.fill((255,255,255)) #redraw the background white
+    
+    #1 Handle events (user input of keys or mouse etc)
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            print("User tried to quit")
+            pygame.quit() # shut down pygame
+    
+    keys = pygame.key.get_pressed() # pygame.key.get_pressed() returns a list of keys
+    if keys[K_p]:
+        break
+    
+    #TEXT STUFF
+    GAME_FONT.size = 40
+    
+    y_offset = 0
+    for line in titleLines:
+        text_surface, rect = GAME_FONT.render(line, (0, 0, 0))
+        SCREEN.blit(text_surface, (150, WIN_HEIGHT/2 - 180 + y_offset))
+        y_offset += 40 # spacing between lines
+    
+    pygame.display.flip() #reveals the next frame and delay before the next loop iteration
+    CLOCK.tick(60) #slow the frame rate to 60 fps
+
+# Had to move these over here because of the title screen, conflicts with some of the timers
+spellcardDelayTime = pygame.time.get_ticks() # for spellcard ui, will be changed to the amount of time when the boss does a spellcard
+phaseChanging = False
+
+playerDeathTime = pygame.time.get_ticks() # same system as spellcard delay time
+playerDying = False
+
+playerGodmodeTime = pygame.time.get_ticks() # same system as spellcard delay time as well
+playerGodmodeTimeStart = False
+
 # Spawn Player
 newPlayer = Player(x, y, playerBullets, AME_IMG)
 playerGroup.add(newPlayer)
@@ -585,36 +646,47 @@ bossGroup.add(newBoss)
 
 phaseChanging = True
 attack += 1
-spellcardGraphic(attackName(attack))
+spellcardGraphic(attackName(attack), 1)
 bossHealth = 50000
 spellcardDelayTime = pygame.time.get_ticks()
 pygame.sprite.Group.empty(enemyBullets)
 
+# This is the main game loop!!
 while True:
     
     #1 Handle events (user input of keys or mouse etc)
+    # I dont use this alot just because its just a single keypress but it is good for debug functions
     for event in pygame.event.get():
         if event.type == QUIT:
             print("User tried to quit")
             pygame.quit() # shut down pygame
         elif event.type == KEYDOWN:
-            if event.key == K_SPACE:
-                newPlayer = Player(x, y, playerBullets, AME_IMG)
-                playerGroup.add(newPlayer)
-    
+            if event.key == K_g:
+                if godmode == False:
+                    godmode = True
+                    spellcardGraphic('journalist mode activated..?', 2)
+                else:
+                    godmode = False
+                    spellcardGraphic('journalist mode deactivated!!', 2)
+         
+    # I would have done this in the pygame.event.get(), but its in a for loop so I gotta do it this way..
+    # Besides, they are near eachother so it shouldn't hurt me anyway.. right?
+               
     keys = pygame.key.get_pressed() # pygame.key.get_pressed() returns a list of keys
+    if keys[K_b]:
+        break
     
     # Bullet Debug: To test bullet aiming
-    if keys[K_SPACE]:
-        newEnemyBullet = EnemyBullet(
-            boss.x, # x position of boss
-            boss.y, # y position of boss
-            newPlayer.x, # x position of the target to shoot
-            newPlayer.y, # y position of the target to shoot
-            random.randint(4, 7), # speed of the bullet
-            random.randint(-180, 180), #rotation of the bullet
-            False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
-            random.randint(0, 4)) # bullet appearance
+    # if keys[K_SPACE]:
+    #     newEnemyBullet = EnemyBullet(
+    #         boss.x, # x position of boss
+    #         boss.y, # y position of boss
+    #         newPlayer.x, # x position of the target to shoot
+    #         newPlayer.y, # y position of the target to shoot
+    #         random.randint(4, 7), # speed of the bullet
+    #         random.randint(-180, 180), #rotation of the bullet
+    #         False, #toggle whether the bullet is aimed toward player or not; overrides target x and target y
+    #         random.randint(0, 4)) # bullet appearance
     #     enemyBullets.add(newEnemyBullet)
         
     #2 Update the state of the game (move characters increase score etc.)
@@ -627,7 +699,7 @@ while True:
     if bossHealth <= 0 and phaseChanging == False:
         phaseChanging = True
         attack += 1
-        spellcardGraphic(attackName(attack))
+        spellcardGraphic(attackName(attack), 1)
         bossHealth = 50000
         spellcardDelayTime = pygame.time.get_ticks()
         pygame.sprite.Group.empty(enemyBullets)
@@ -636,11 +708,9 @@ while True:
 
     if phaseChanging == True:
         if pygame.time.get_ticks() - spellcardDelayTime > 1500:
-            print('hi')
+            print('phase changed')
             bossHealth = 50000
             phaseChanging = False
-
-
 
     #3 Draw all components on the screen
     #bg, enemies, player, whatever else
@@ -673,81 +743,82 @@ while True:
     if playerBulletCollision:
         bossHealth -= 100
     
-    # Variable to toggle if you die if you get hit
+    # Player death code
     if playerCollision and godmode == False:
         # break
+        deaths += 1
         playerDying = True
         playerDeathTime = pygame.time.get_ticks()
         playerGodmodeTimeStart = True
         playerGodmodeTime = pygame.time.get_ticks()
         pygame.sprite.Group.empty(playerGroup)
         godmode = True
-        print('ded')
+        print('ded', deaths)
     
+    # Only starts going off if the playerdying variable is true, then after it does its thing it sets the variable to false so it doesnt happen again
     if playerDying == True:
         if pygame.time.get_ticks() - playerDeathTime > 1000:
-            print('hi')
+            print('player respawn')
             newPlayer = Player(x, y, playerBullets, AME_IMG)
             playerGroup.add(newPlayer)
             playerDying = False
 
+    # Once this activates it just turns off your godmode
     if playerGodmodeTimeStart == True:
-        if pygame.time.get_ticks() - playerGodmodeTime > 5000:
+        if pygame.time.get_ticks() - playerGodmodeTime > 2500:
             print('godmode off')
             godmode = False
             playerGodmodeTimeStart = False
 
+
+    #For loops to iterate through the groups, um it just displays an image over them incase i wanna do some fun stuff, also i hate updating images in sprites
     for player in playerGroup:
         if player.focus == True:
-            SCREEN.blit(PLAYERHITBOX_IMG, (player.x-125/2, player.y-125/2)) # Make image, this is the Ame 
+            SCREEN.blit(PLAYERHITBOX_IMG, (player.x-125/2, player.y-125/2)) # Make image, this is hitbox 
     
     for bullet in enemyBullets:
         if bullet.type2 == 0:
             if bullet.type == 0:
-                SCREEN.blit(BULLET_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+                SCREEN.blit(BULLET_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, red bullet
             elif bullet.type == 1:
-                SCREEN.blit(BULLET2_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+                SCREEN.blit(BULLET2_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, blue bullet
             elif bullet.type == 2:
-                SCREEN.blit(BULLET3_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+                SCREEN.blit(BULLET3_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 1
             elif bullet.type == 3:
-                SCREEN.blit(BULLET4_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+                SCREEN.blit(BULLET4_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 2
             elif bullet.type == 4:
-                SCREEN.blit(BULLET5_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, this is the Ame
+                SCREEN.blit(BULLET5_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 3
     
     for bullet in playerBullets:
         if bullet.type == 0:
-            SCREEN.blit(BULLETPLAYER_IMG, (bullet.x-16/2, bullet.y-32/2)) # Make image, this is the Ame
+            SCREEN.blit(BULLETPLAYER_IMG, (bullet.x-16/2, bullet.y-32/2)) # Make image, this is the regular bullet
         elif bullet.type == 1:
-            SCREEN.blit(BULLETPLAYERHOME_IMG, (bullet.x-28/2, bullet.y-30/2)) # Make image, this is the Ame
+            SCREEN.blit(BULLETPLAYERHOME_IMG, (bullet.x-28/2, bullet.y-30/2)) # Make image, this is the homing bullet (talisman i think?)
     
     for boss in bossGroup:
-        SCREEN.blit(AME_IMG, (boss.x-50, boss.y-50)) # Make image, this is the Ame
+        SCREEN.blit(AME_IMG, (boss.x-50, boss.y-50)) # Make image, this is the boss
 
+    # Boss healthbar thing
     pygame.draw.rect(SCREEN, (255,255,255), pygame.Rect(0, WIN_HEIGHT-10, WIN_WIDTH*bossHealthPercentage/100, WIN_HEIGHT-10))
 
-    #Spellcard Ui
+    # Spellcard Ui sprite, here because it goes ontop of everything
     spellcardGroup.update()
     for ui in spellcardGroup:
         ui.show(SCREEN)
 
+    # Font stuff
     GAME_FONT.size = 24
-
-    # Text to show score
-    text_surface, rect = GAME_FONT.render(str(math.floor(score)), (255, 255, 255)) # rect is there for some reason idk probably to add something for the text to rest on
-    SCREEN.blit(text_surface, (10, 10))
 
     # Text to show boss health
     text_surface, rect = GAME_FONT.render(str(round(bossHealthPercentage, 1)), (255, 255, 255)) # rect is there for some reason idk probably to add something for the text to rest on
     SCREEN.blit(text_surface, (10, WIN_HEIGHT-40))
     
-    
     pygame.display.flip() #reveals the next frame and delay before the next loop iteration
     CLOCK.tick(60) #slow the frame rate to 60 fps
-
-
         
-SCREEN.fill((255,255,255)) #redraw the background white
 while True:
+    
+    SCREEN.fill((255,255,255)) #redraw the background white
     
     #1 Handle events (user input of keys or mouse etc)
     for event in pygame.event.get():
@@ -755,7 +826,7 @@ while True:
             print("User tried to quit")
             pygame.quit() # shut down pygame
     
-    text_surface, rect = GAME_FONT.render("you win") # rect is there for some reason idk probably to add something for the text to rest on
+    text_surface, rect = GAME_FONT.render(str(winText(deaths))) # rect is there for some reason idk probably to add something for the text to rest on
     SCREEN.blit(text_surface, (WIN_WIDTH/2 -100, WIN_HEIGHT/2))
     
     pygame.display.flip() #reveals the next frame and delay before the next loop iteration

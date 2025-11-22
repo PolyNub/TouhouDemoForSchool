@@ -45,7 +45,7 @@ def winText(deathCount):
     if deathCount < 1:
         text = 'you won, no deaths so good job'
     else:
-        text = "you won, you died", deathCount, "time(s), do a no hit run now haha"
+        text = "you won, you died "+str(deathCount)+" time(s), do a no hit run now haha"
     return text
 
 # ==== PLAYER BULLET SPRITE
@@ -431,7 +431,7 @@ class Boss(pygame.sprite.Sprite):
                     
                 # aimed bullets
                 if currentTime - self.eTime2 > self.cooldown2:
-                    for i in range(5):      
+                    for i in range(7):      
                         newEnemyBullet = EnemyBullet(
                             self.x, # x position of boss
                             self.y, # y position of boss

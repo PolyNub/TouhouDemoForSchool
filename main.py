@@ -816,6 +816,8 @@ while True:
     pygame.display.flip() #reveals the next frame and delay before the next loop iteration
     CLOCK.tick(60) #slow the frame rate to 60 fps
         
+print(str(deaths)+ ' deaths')        
+
 while True:
     
     SCREEN.fill((255,255,255)) #redraw the background white

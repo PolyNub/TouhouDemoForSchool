@@ -48,6 +48,34 @@ def winText(deathCount):
         text = "you won, you died "+str(deathCount)+" time(s), do a no hit run now haha"
     return text
 
+def drawSprites(type):
+    if type == 'player':
+        for player in playerGroup:
+            if player.focus == True:
+                SCREEN.blit(PLAYERHITBOX_IMG, (player.x-125/2, player.y-125/2)) # Make image, this is hitbox 
+    elif type == 'bullet':
+        for bullet in enemyBullets:
+            if bullet.type2 == 0:
+                if bullet.type == 0:
+                    SCREEN.blit(BULLET_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, red bullet
+                elif bullet.type == 1:
+                    SCREEN.blit(BULLET2_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, blue bullet
+                elif bullet.type == 2:
+                    SCREEN.blit(BULLET3_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 1
+                elif bullet.type == 3:
+                    SCREEN.blit(BULLET4_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 2
+                elif bullet.type == 4:
+                    SCREEN.blit(BULLET5_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 3
+    elif type == 'playerBullet':
+        for bullet in playerBullets:
+            if bullet.type == 0:
+                SCREEN.blit(BULLETPLAYER_IMG, (bullet.x-16/2, bullet.y-32/2)) # Make image, this is the regular bullet
+            elif bullet.type == 1:
+                SCREEN.blit(BULLETPLAYERHOME_IMG, (bullet.x-28/2, bullet.y-30/2)) # Make image, this is the homing bullet (talisman i think?)
+    elif type == 'boss':
+        for boss in bossGroup:
+            SCREEN.blit(AME_IMG, (boss.x-50, boss.y-50)) # Make image, this is the boss
+
 # ==== PLAYER BULLET SPRITE
 class PlayerBullet(pygame.sprite.Sprite):
     def __init__(self, x,y, type, radius=10,):
@@ -771,32 +799,9 @@ while True:
             playerGodmodeTimeStart = False
 
 
-    #For loops to iterate through the groups, um it just displays an image over them incase i wanna do some fun stuff, also i hate updating images in sprites
-    for player in playerGroup:
-        if player.focus == True:
-            SCREEN.blit(PLAYERHITBOX_IMG, (player.x-125/2, player.y-125/2)) # Make image, this is hitbox 
-    
-    for bullet in enemyBullets:
-        if bullet.type2 == 0:
-            if bullet.type == 0:
-                SCREEN.blit(BULLET_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, red bullet
-            elif bullet.type == 1:
-                SCREEN.blit(BULLET2_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, blue bullet
-            elif bullet.type == 2:
-                SCREEN.blit(BULLET3_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 1
-            elif bullet.type == 3:
-                SCREEN.blit(BULLET4_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 2
-            elif bullet.type == 4:
-                SCREEN.blit(BULLET5_IMG, (bullet.x-35/2, bullet.y-35/2)) # Make image, bullet variation 3
-    
-    for bullet in playerBullets:
-        if bullet.type == 0:
-            SCREEN.blit(BULLETPLAYER_IMG, (bullet.x-16/2, bullet.y-32/2)) # Make image, this is the regular bullet
-        elif bullet.type == 1:
-            SCREEN.blit(BULLETPLAYERHOME_IMG, (bullet.x-28/2, bullet.y-30/2)) # Make image, this is the homing bullet (talisman i think?)
-    
-    for boss in bossGroup:
-        SCREEN.blit(AME_IMG, (boss.x-50, boss.y-50)) # Make image, this is the boss
+    #For loop to iterate through the groups, um it just displays an image over them incase i wanna do some fun stuff, also i hate updating images in sprites
+    for i in ['player', 'bullet', 'playerBullet', 'boss']:
+        drawSprites(i)
 
     # Boss healthbar thing
     pygame.draw.rect(SCREEN, (255,255,255), pygame.Rect(0, WIN_HEIGHT-10, WIN_WIDTH*bossHealthPercentage/100, WIN_HEIGHT-10))
